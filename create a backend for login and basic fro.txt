@@ -1,0 +1,14 @@
+create a backend for login and basic frontend for checking
+
+initialize next app
+create dummy login api. (give email and password, get verifyToken in cookie)
+create dummy signup api. (give email and password and username, get verifyToken in cookie)
+create dummy user api. (get user details)
+connect db
+create model
+create basic login page
+create basic signup page
+create basic home page
+import axios, make requests from login page
+import axios, make requests from signup page
+import axios, make requests from home page
