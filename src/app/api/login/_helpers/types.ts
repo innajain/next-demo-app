@@ -1,24 +1,28 @@
 export type LoginRequestType = {
-  email: string;
-  password: string;
+    email: string;
+    password: string;
 };
 
 export type LoginResponseType = LoginSuccessResponse | LoginErrorResponse;
 
 type LoginSuccessResponse = {
-  message: "Login success";
-  data: {
-    verifyToken: string;
-  };
+    message: "Login success";
+    data: {
+        user: {
+            email: string;
+            username: string;
+            id: string;
+        };
+    };
 };
 
 type LoginErrorResponse = {
-  message: LoginErrorMessage;
-  data?: undefined;
+    message: LoginErrorMessage;
+    data?: undefined;
 };
 
 export type LoginErrorMessage =
-  | "Email and password are required"
-  | "Invalid email: must contain @ symbol"
-  | "User with email does not exist"
-  | "Wrong password";
+    | "Email and password are required"
+    | "Invalid email: must contain @ symbol"
+    | "User with email does not exist"
+    | "Wrong password";

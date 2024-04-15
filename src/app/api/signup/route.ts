@@ -1,63 +1,90 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SignupRequestType, SignupResponseType } from "./_helpers/types";
 import { doSignupSanityChecks } from "./_helpers/doSignupSanityChecks";
+import { User, UserType } from "@/models/User";
+import jwt from "jsonwebtoken";
+import { connectDb } from "@/db/db";
+
+connectDb();
 
 export async function POST(
-  req: NextRequest
+    req: NextRequest
 ): Promise<NextResponse<SignupResponseType>> {
-  const { email, password, username } = (await req
-    .json()
-    .catch(() => ({}))) as SignupRequestType;
+    const { email, password, username } = (await req
+        .json()
+        .catch(() => ({}))) as SignupRequestType;
 
-  const check = doSignupSanityChecks({ email, password, username });
-  if (check !== "success") {
-    return NextResponse.json(
-      {
-        message: check,
-      },
-      { status: 400 }
+    const check = doSignupSanityChecks({ email, password, username });
+    if (check !== "success") {
+        return NextResponse.json(
+            {
+                message: check,
+            },
+            { status: 400 }
+        );
+    }
+
+    let createdUser: UserType;
+    try {
+        const userByEmail: UserType | null = await User.findOne({ email });
+        if (userByEmail) {
+            return NextResponse.json(
+                {
+                    message: "Email already exists",
+                },
+                { status: 409 }
+            );
+        }
+        const userByUsername: UserType | null = await User.findOne({
+            username,
+        });
+        if (userByUsername) {
+            return NextResponse.json(
+                {
+                    message: "Username already exists",
+                },
+                { status: 409 }
+            );
+        }
+
+        // create user
+        const user = new User({ email, password, username });
+        await user.save();
+        createdUser = user;
+    } catch (error) {
+        console.log(error);
+        return NextResponse.json(
+            {
+                message: "Could not create user: Unknown internal server error",
+            },
+            { status: 500 }
+        );
+    }
+
+    const verifyToken = jwt.sign(
+        {
+            email: createdUser.email,
+            username: createdUser.username,
+            id: createdUser._id,
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: "1m",
+        }
     );
-  }
 
-  // check if email NOT already exists
-  if (false) {
-    return NextResponse.json(
-      {
-        message: "Email already exists",
-      },
-      { status: 409 }
-    );
-  }
+    const res: NextResponse<SignupResponseType> = NextResponse.json({
+        message: "Signup success",
+        data: {
+            user: {
+                email,
+                username,
+                id: createdUser._id,
+            },
+        },
+    });
 
-  // check if username NOT already exists
-  if (false) {
-    return NextResponse.json(
-      {
-        message: "Username already exists",
-      },
-      { status: 409 }
-    );
-  }
+    res.cookies.set("token", verifyToken, { httpOnly: true });
 
-  // create user
-  if (false) {
-    return NextResponse.json(
-      {
-        message: "Could not create user: Unknown internal server error",
-      },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({
-    message: "Signup success",
-    data: {
-      verifyToken: "some-verify token",
-      user: {
-        email,
-        password,
-        username,
-      },
-    },
-  });
+    return res;
 }
